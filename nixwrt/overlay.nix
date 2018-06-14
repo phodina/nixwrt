@@ -25,12 +25,47 @@ self: super: {
 
   swconfig =  super.callPackage ./swconfig.nix {};
 
+  musl = super.musl.overrideAttrs (o: {
+    configureFlags = super.lib.lists.remove  "--enable-static" o.configureFlags;
+  });
+
   iproute = super.iproute.override {
-    # db cxxSupport causes closure size explosion because it drags in
+    # cxxSupport causes closure size explosion because it drags in
     # gcc as runtime dependency.  I don't think it needs it, it's some
     # kind of rpath problem or similar
+
     db = super.db.override { cxxSupport = false;};
   };
+
+  # openssl flags we wanted were [ "no-engine no-ssl3 no-dso2 no-weak-ssl-ciphers no-srp" ];
+
+  openssl = (super.libressl.override { fetchurl = super.fetchurlBoot; }). overrideAttrs(o: {
+    configureFlags = [ "--disable-nc" ] ;
+  });
+
+  hostapd = let configuration = [
+      "CONFIG_DRIVER_NL80211=y"
+      "CONFIG_IAPP=y"
+      "CONFIG_IEEE80211W=y"
+      "CONFIG_IPV6=y"
+      "CONFIG_LIBNL32=y"
+#      "CONFIG_PEERKEY"
+      "CONFIG_PKCS12=y"
+      "CONFIG_RSN_PREAUTH=y"
+      "CONFIG_TLS=internal"
+      "CONFIG_INTERNAL_LIBTOMMATH=y"
+      "CONFIG_INTERNAL_LIBTOMMATH_FAST=y"
+    ];
+    confFile = super.writeText "hostap.config"
+      (builtins.concatStringsSep "\n" configuration);
+    in (super.hostapd.override { sqlite = null; }).overrideAttrs(o:  {
+      extraConfig = "";
+      configurePhase = ''
+        cp -v ${confFile} hostapd/defconfig
+        ${o.configurePhase}
+      '';
+  });
+
 
   # we had trouble building rsync with acl support, and
   rsync = super.rsync.override { enableACLs = false; } ;

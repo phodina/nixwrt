@@ -27,7 +27,7 @@ let readConfig = file:
       sha256 = "0jbkzrvalwxq7sjj58r23q3868nvs7rrhf8bd2zi399vhdkz7sfw";
     };
     configFiles = ["${ledeSrc}/target/linux/generic/config-4.9"
-                   "${ledeSrc}/target/linux/${defaultConfig}"
+                 #  "${ledeSrc}/target/linux/${defaultConfig}"
                    ];
     configuration = let
       defaults = lib.foldl (a: b: a // b)
@@ -92,6 +92,7 @@ stdenv.mkDerivation rec {
       substituteInPlace scripts/ld-version.sh --replace /usr/bin/awk ${buildPackages.pkgs.gawk}/bin/awk
       make V=1 mrproper
       cp ${configuration} .config
+      cp ${configuration} .config.as_was
       make V=1 olddefconfig
     '';
 
@@ -106,7 +107,7 @@ stdenv.mkDerivation rec {
         scripts/patch-dtb vmlinux.stripped vmlinux.dtb
       fi
       rm -f vmlinux.stripped.lzma
-      ${lzma}/bin/lzma -k -z  vmlinux.stripped
+      ${lzma}/bin/lzma -k -z vmlinux.stripped
       mkimage -A mips -O linux -T kernel -C lzma -a ${loadAddress} -e ${entryPoint} -n 'MIPS NixWrt Linux' -d vmlinux.stripped.lzma kernel.image
     '';
 

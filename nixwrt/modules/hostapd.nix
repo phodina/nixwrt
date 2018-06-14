@@ -1,4 +1,4 @@
-options: nixpkgs: configuration:
+options: nixpkgs: self: configuration:
 with nixpkgs;
 let config = {
       driver = "nl80211";
