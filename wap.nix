@@ -12,69 +12,20 @@ with nixpkgs;
 let
     rootfsImage = pkgs.callPackage ./nixwrt/rootfs-image.nix ;
     myKeys = (nixpkgs.stdenv.lib.splitString "\n" ( builtins.readFile "/etc/ssh/authorized_keys.d/dan" ) );
+    busyboxArgs = { config, applets } :
+      let xconfig = builtins.concatStringsSep "\n"
+        (map (n: v: "CONFIG_${pkgs.lib.strings.toUpper n} ${v}") config);
+          aconfig = builtins.concatStringsSep "\n"
+        (map (n: "CONFIG_${pkgs.lib.strings.toUpper n} y") applets);
+      in super.busybox.override {
+        enableStatic = true;
+        enableMinimal = true;
+        extraConfig = ''
+          ${xconfig}
+          ${aconfig}
+        '';
+      };
 in rec {
-  busyboxConfig = let applets = [
-     "blkid"
-     "cat"
-     "chmod"
-     "chown"
-     "cp"
-     "dd"
-     "df"
-     "dmesg"
-     "du"
-     "find"
-     "grep"
-     "gzip"
-     "init"
-     "kill"
-     "ls"
-     "mdev"
-     "mkdir"
-     "mount"
-     "mv"
-     "nc"
-     "ntpd"
-     "ping"
-     "ps"
-     "reboot"
-     "route"
-     "rm"
-     "rmdir"
-     "stty"
-     "syslogd"
-     "tar"
-     "udhcpc"
-     "umount"
-     "zcat"
-  ]; in {
-    enableStatic = true;
-    enableMinimal = true;
-    extraConfig = ''
-      CONFIG_ASH y
-      CONFIG_ASH_ECHO y
-      CONFIG_BASH_IS_NONE y
-      CONFIG_ASH_BUILTIN_ECHO y
-      CONFIG_ASH_BUILTIN_TEST y
-      CONFIG_ASH_OPTIMIZE_FOR_SIZE y
-      CONFIG_FEATURE_BLKID_TYPE y
-      CONFIG_FEATURE_MDEV_CONF y
-      CONFIG_FEATURE_MDEV_EXEC y
-      CONFIG_FEATURE_MOUNT_FLAGS y
-      CONFIG_FEATURE_MOUNT_LABEL y
-      CONFIG_FEATURE_PIDFILE y
-      CONFIG_FEATURE_REMOTE_LOG y
-      CONFIG_FEATURE_USE_INITTAB y
-      CONFIG_FEATURE_VOLUMEID_EXT y
-      CONFIG_NC_SERVER y
-      CONFIG_NC_EXTRA y
-      CONFIG_NC_110_COMPAT y
-      CONFIG_PID_FILE_PATH "/run"
-      CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE 256
-      CONFIG_TOUCH y
-      '' + builtins.concatStringsSep
-              "\n" (map (n : "CONFIG_${pkgs.lib.strings.toUpper n} y") applets);
-  };
   testKernelAttrs = let k = (device.kernel lib); in {
     inherit lzma;
     dtsPath = if (k ? dts) then (k.dts nixpkgs) else null ;
@@ -120,7 +71,6 @@ in rec {
 
   swconfig = pkgs.swconfig.override { inherit kernel; };
 
-  busybox = pkgs.busybox.override busyboxConfig;
 
   rootfs = let baseConfiguration = rec {
       hostname = "uostairs";

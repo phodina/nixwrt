@@ -62,15 +62,17 @@
       '';
     in nixpkgs.lib.attrsets.recursiveUpdate configuration  {
       services.udhcpc = {
-        start = "${options.busybox}/bin/udhcpc -H ${configuration.hostname} -i ${options.interface} -p /run/udhcpc.pid -s '${dhcpscript}/bin/dhcpscript'";
+        start = "${self.busybox.package}/bin/udhcpc -H ${configuration.hostname} -i ${options.interface} -p /run/udhcpc.pid -s '${dhcpscript}/bin/dhcpscript'";
         depends = [ options.interface ];
       };
     };
   syslogd = options: nixpkgs: self: super:
     with nixpkgs;
     lib.attrsets.recursiveUpdate super {
+      busybox.applets = super.busybox.applets ++ ["syslogd"];
+      busybox.config."FEATURE_SYSLOGD_READ_BUFFER_SIZE" = 256;
       services.syslogd = {
-        start = "/bin/syslogd -R ${options.loghost}";
+        start = "${self.busybox.package}/bin/syslogd -R ${options.loghost}";
       };
     };
   ntpd = options: nixpkgs: self: configuration:
