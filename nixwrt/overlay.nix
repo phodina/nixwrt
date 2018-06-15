@@ -32,6 +32,12 @@ self: super: {
     db = super.db.override { cxxSupport = false;};
   };
 
+  # openssl flags we wanted were [ "no-engine no-ssl3 no-dso2 no-weak-ssl-ciphers no-srp" ];
+
+  openssl = (super.libressl.override { fetchurl = super.fetchurlBoot; }). overrideAttrs(o: {
+    configureFlags = [ "--disable-nc" ] ;
+  });
+
   hostapd = let configuration = [
       "CONFIG_DRIVER_NL80211=y"
       "CONFIG_IAPP=y"
