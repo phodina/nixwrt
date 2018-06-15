@@ -148,18 +148,21 @@ in rec {
       };
     };
     wantedModules = with modules; [
-      sshd
-      (syslogd { loghost = "192.168.0.2"; })
-      (ntpd { host = "pool.ntp.org"; })
+      (self: super: baseConfiguration)
+      (sshd nixpkgs)
+      (busybox nixpkgs)
+#      (syslogd { loghost = "192.168.0.2"; } nixpkgs)
+      (ntpd { host = "pool.ntp.org"; } nixpkgs)
       (hostapd {
         config = { interface = "wlan0"; ssid = "testlent"; hw_mode = "g"; channel = 1; };
         # no suport currently for generating these, use wpa_passphrase
-        psk = builtins.getEnv( "PSK") ;
-      })
-      (dhcpClient { interface = "br0"; inherit busybox; })
+        psk = builtins.getEnv "PSK";
+      } nixpkgs)
+      (dhcpClient { interface = "br0"; } nixpkgs)
     ];
-    configuration = lib.foldl (c: m: m nixpkgs c) baseConfiguration wantedModules;
-  in  rootfsImage {
+    configuration = with nixpkgs.stdenv.lib; let extend = lhs: rhs: lhs // rhs lhs;
+                    in lib.fix (self: lib.foldl extend {} (map (x: x self) wantedModules));
+  in rootfsImage {
     inherit busybox configuration;
     inherit (pkgs) monit iproute;
   };

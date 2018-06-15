@@ -1,6 +1,6 @@
 {
   hostapd = import ./hostapd.nix;
-  rsyncd = options: nixpkgs: configuration:
+  rsyncd = options: nixpkgs: self: configuration:
     with nixpkgs;
     nixpkgs.lib.attrsets.recursiveUpdate configuration  {
       services = {
@@ -26,8 +26,8 @@
       };
 
     };
-  sshd = nixpkgs: configuration:
-    nixpkgs.lib.attrsets.recursiveUpdate configuration  {
+  sshd = nixpkgs: self: super:
+    nixpkgs.lib.attrsets.recursiveUpdate super {
       services = with nixpkgs; {
         dropbear = {
           start = "${pkgs.dropbear}/bin/dropbear -s -P /run/dropbear.pid";
@@ -35,7 +35,8 @@
         };
       };
     };
-  dhcpClient = options: nixpkgs: configuration:
+  busybox = import ./busybox.nix;
+  dhcpClient = options: nixpkgs: self: configuration:
     with nixpkgs;
     let dhcpscript = nixpkgs.writeScriptBin "dhcpscript" ''
       #!/bin/sh
@@ -65,14 +66,14 @@
         depends = [ options.interface ];
       };
     };
-  syslogd = options: nixpkgs: configuration:
+  syslogd = options: nixpkgs: self: super:
     with nixpkgs;
-    lib.attrsets.recursiveUpdate configuration {
+    lib.attrsets.recursiveUpdate super {
       services.syslogd = {
         start = "/bin/syslogd -R ${options.loghost}";
       };
     };
-  ntpd = options: nixpkgs: configuration:
+  ntpd = options: nixpkgs: self: configuration:
     with nixpkgs;
     lib.attrsets.recursiveUpdate configuration {
       services.ntpd = {
