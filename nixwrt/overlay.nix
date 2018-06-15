@@ -64,4 +64,12 @@ self: super: {
   # we had trouble building rsync with acl support, and
   # it's not as though we even use them
   rsync = super.rsync.override { enableACLs = false; } ;
+
+  iprouteSansBash = (super.iproute.override { db = null; iptables = null; }).
+    overrideAttrs (o: {
+      # we don't need these and they depend on bash
+      postInstall = ''
+        rm $out/sbin/routef $out/sbin/routel $out/sbin/rtpr $out/sbin/ifcfg
+      '';
+    });
 }

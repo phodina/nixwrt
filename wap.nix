@@ -91,7 +91,7 @@ in rec {
         {name="dan"; uid=1000; gid=1000; gecos="Daniel"; dir="/home/dan";
          shell="/bin/sh"; authorizedKeys = myKeys;}
       ];
-      packages = [ swconfig pkgs.iproute ];
+      packages = [ swconfig pkgs.iprouteSansBash ];
       filesystems = { };
       services = {
       };
@@ -113,7 +113,8 @@ in rec {
                     in lib.fix (self: lib.foldl extend {} (map (x: x self) wantedModules));
   in rootfsImage {
     inherit busybox configuration;
-    inherit (pkgs) monit iproute;
+    inherit (pkgs) monit ;
+    iproute = iprouteSansBash;
   };
 
   tftproot = stdenv.mkDerivation rec {
