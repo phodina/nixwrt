@@ -60,6 +60,8 @@ self: super: {
         ${o.configurePhase}
       '';
   });
+
   # we had trouble building rsync with acl support, and
+  # it's not as though we even use them
   rsync = super.rsync.override { enableACLs = false; } ;
 }

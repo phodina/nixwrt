@@ -106,7 +106,7 @@ stdenv.mkDerivation rec {
         scripts/patch-dtb vmlinux.stripped vmlinux.dtb
       fi
       rm -f vmlinux.stripped.lzma
-      ${lzma}/bin/lzma -k -z  vmlinux.stripped
+      ${lzma}/bin/lzma -k -z vmlinux.stripped
       mkimage -A mips -O linux -T kernel -C lzma -a ${loadAddress} -e ${entryPoint} -n 'MIPS NixWrt Linux' -d vmlinux.stripped.lzma kernel.image
     '';
 

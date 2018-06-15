@@ -71,7 +71,6 @@ in rec {
 
   swconfig = pkgs.swconfig.override { inherit kernel; };
 
-
   rootfs = let baseConfiguration = rec {
       hostname = "uostairs";
       interfaces = {
