@@ -1,12 +1,8 @@
 let
   readDefconfig = import ./util/read_defconfig.nix;
-  kernelSrcUrl = v : "https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-${v}.tar.xz";
-  majmin = version :
-    let el = n : builtins.toString (builtins.elemAt version n);
-    in (el 0) + "." + (el 1);
-  mmp = version :
-    let el = n : builtins.toString (builtins.elemAt version n);
-    in (el 0) + "." + (el 1) + "." + (el 2);
+  applyVersion = tokens : fn :
+    builtins.foldl' (f: x: f x) fn (map toString tokens);
+  kernelSrcUrl = maj : min : p : "https://cdn.kernel.org/pub/linux/kernel/v${maj}.x/linux-${maj}.${min}.${p}.tar.xz";
   uimage = callPackage : vmlinux : cfg : fdt :
             (callPackage ./kernel/uimage.nix) {
               inherit vmlinux;
@@ -24,18 +20,19 @@ in rec {
     openwrtSrc =  {
       owner = "openwrt";
       repo = "openwrt";
-      name = "openwrt-source" ;
-      rev = "430b66bbe8726a096b5db04dc34915ae9be1eaeb";
-      sha256 = "0h7mzq2055548060vmvyl5dkvbbfzyasa79rsn2i15nhsmmgc0ri";
+      name = "openwrt-src" ;
+      rev = "252197f014932c03cea7c080d8ab90e0a963a281";
+      sha256 = "1n30rhg7vwa4zq4sw1c27634wv6vdbssxa5wcplzzsbz10z8cwj9";
     };
     socFamily = "ramips";
     hwModule = {dtsPath, soc ? "mt7620" } : nixpkgs: self: super:
       with nixpkgs;
-      let version = [4 14 113];
+      let version = [5 4 63];
           kernelSrc = pkgs.fetchurl {
-            url = (kernelSrcUrl (mmp version));
-            sha256 = "1hnsmlpfbcy52dax7g194ksr9179kpigj1y5k44jkwmagziz4kdj";
+            url = applyVersion version kernelSrcUrl;
+            sha256 = "1h7zlzylxql2v6hyi6g141kj5r3frk2xk6i8lfqn64d01np0s9p0";
           };
+          majmin = applyVersion version (a : b : _ : "${a}.${b}");
           readconf = readDefconfig nixpkgs;
           kconfig = {
             "BLK_DEV_INITRD" = "n";
@@ -50,7 +47,6 @@ in rec {
             "IMAGE_CMDLINE_HACK" = "n";
             "IP_PNP" = "y";
             "JFFS2_FS" = "n";
-            "MIPS_RAW_APPENDED_DTB" = "y";
             "MTD_CMDLINE_PARTS" = "y";
             "NETFILTER"= "y";   # mtk_eth_soc.c won't build without this
             "NET_MEDIATEK_GSW_MT7620" = "y";
@@ -70,19 +66,15 @@ in rec {
             "SOC_MT7620" = "y";
           };
       p = "${pkgs.fetchFromGitHub openwrtSrc}/target/linux/";
-      socPatches = [
-        "${p}ramips/patches-4.14/"
-      ];
-      socFiles = [
-        "${p}ramips/files-4.14/*"
-      ];
+      socPatches = [ "${p}ramips/patches-4.14/" ]
+      socFiles = [ "${p}ramips/files-4.14/*" ];
       ksrc = (callPackage ./kernel/prepare-source.nix) {
         ledeSrc = pkgs.fetchFromGitHub  openwrtSrc;
         inherit version kernelSrc socFamily socPatches socFiles;
       };
       in lib.attrsets.recursiveUpdate super {
-        kernel.config = (readconf "${p}generic/config-${majmin version}") //
-                        (readconf "${p}${socFamily}/${soc}/config-${majmin version}") //
+        kernel.config = (readconf "${p}generic/config-${majmin}") //
+                        (readconf "${p}${socFamily}/${soc}/config-${majmin}") //
                         kconfig;
         kernel.loadAddress = "0x80000000";
         kernel.entryPoint = "0x80000000";

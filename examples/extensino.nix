@@ -3,7 +3,7 @@
 , loghost ? "loghost"
 , myKeys ? "ssh-rsa AAAAATESTFOOBAR dan@example.org"
 , sshHostKey ? "----NOT A REAL RSA PRIVATE KEY---" }:
-let nixwrt = (import <nixwrt>) { targetBoard = "mt300a"; }; in
+let nixwrt = (import <nixwrt>) { endian = "little";  }; in
 with nixwrt.nixpkgs;
 let
     baseConfiguration = {
@@ -24,7 +24,7 @@ let
           channel = 2;
           hw_mode = "g";
           wpa_psk = psk;
-          memberOf = "br0";
+#          memberOf = "br0";
         };
         "br0" = {
           type = "bridge";
@@ -51,7 +51,8 @@ let
 
     wantedModules = with nixwrt.modules;
       [(_ : _ : _ : baseConfiguration)
-       nixwrt.device.hwModule
+       (import <nixwrt/modules/lib.nix> {})
+       (import <nixwrt/devices/gl-mt300a.nix> {})
        (sshd { hostkey = sshHostKey ; })
        busybox
        kernelMtd
@@ -70,7 +71,7 @@ let
 
     in {
       firmware = nixwrt.firmware (nixwrt.mergeModules wantedModules);
-
+      kernel = nixwrt.kernel (nixwrt.mergeModules wantedModules);
       # phramware generates an image which boots from the "fake" phram mtd
       # device - required if you want to boot from u-boot without
       # writing the image to flash first
